@@ -22,5 +22,6 @@ CORS
 - By default, this enables CORS for http://localhost:5173 (Vite default). Adjust backend/config.php if your origin differs.
 
 Security notes
-- Keep .env out of version control (already ignored).
+- Keep .env out of version control (already ignored). Do not expose OPENAI_API_KEY to the frontend; it must remain on the server.
+- If you need frontend config, use Vite public vars (prefix with VITE_) in a root .env and treat them as public.
 - Consider restricting allowed origins and adding your own auth if exposing publicly.
