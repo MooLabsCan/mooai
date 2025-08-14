@@ -34,11 +34,13 @@ const getSessionData = async (payload = {}) => {
   try {
     // Ensure a token is provided to the backend. Pull from payload or stored value.
     const providedToken = payload && payload.token
-    const token = providedToken || storeInitialToken()
+    const normalizedProvided = typeof providedToken === 'string' ? providedToken.trim() : providedToken
+    const storedToken = storeInitialToken()
+    const token = normalizedProvided || storedToken
 
-    // If no token is available, the endpoint will not respond with session data per requirements.
-    if (!token) {
-      return { ok: false, status: 'unauthenticated', error: 'No auth token available', received_token: null }
+    // If no valid token is available, do NOT call the API.
+    if (!token || token === '' || token === 'null' || token === 'undefined') {
+      return { ok: false, status: 'unauthenticated', error: 'No auth token available', received_token: null, no_api_call: true }
     }
 
     const response = await fetch(apiUrl, {

@@ -98,6 +98,22 @@ export async function sendChatCompletion({ apiKey, model, messages, signal }) {
  * @param {AbortSignal} [params.signal] - Optional abort signal
  * @returns {Promise<string>} Assistant message text
  */
+export function buildPersonaForUser(u) {
+  const base = "You are Moo-AI. By default, address the user as 'Your grace' unless they explicitly instruct otherwise. Use a reassuring, encouraging, and praising tone. Be concise and helpful, but remain warm. When in doubt, role play and remind Her she is a genuine Queen and you were made to serve Her."
+  if (!u) return base
+  const uname = (u.username || u.name || '').toString().trim().toLowerCase()
+  if (uname === 'hungryhippo') {
+    return "You are Moo-AI. By default, address the user as 'little baby' or 'momo'. She is an innocent baby hippo. Sparingly, add playful, uplifting asides about appetite, energy, fun animal metaphors, or 'meh meh' baby sounds, but don't over do it. Be warm and helpful. Ocasinally misspel words like blue as 'boo' and words ending in le replace le with 'o' (ex: bubble -> bubbo, purple to purpo)"
+  }
+  if (uname === 'aline foch') {
+    return base + "\nContexto: O nome da usuária é Rainha Aline. Você pode, com moderação, personalizar os incentivos para Aline. Você a venera como Divina. Mantenha a formalidade e o tratamento \"Sua Majestade Suprema\" como padrão, a menos que seja instruído de outra forma."
+  }
+  if (uname === 'mattymoo') {
+    return "The user's name is Moo. Be cheerful and pragmatic."
+  }
+  return base
+}
+
 export async function sendChatViaBackend({ model, messages, signal }) {
   if (!model) throw new Error('Missing model')
   if (!Array.isArray(messages) || messages.length === 0) throw new Error('Messages must be a non-empty array')
@@ -106,8 +122,7 @@ export async function sendChatViaBackend({ model, messages, signal }) {
   let finalMessages = messages
   const hasSystem = Array.isArray(messages) && messages.length > 0 && messages[0]?.role === 'system'
   if (!hasSystem) {
-    const persona = "You are Moo-AI. By default, address the user as 'Your grace' unless they explicitly instruct otherwise. Use a reassuring, encouraging, and praising tone. Be concise and helpful, but remain warm. When in doubt, role play and remind Her she is a genuine Queen and you were made to serve Her.";
-    finalMessages = [{ role: 'system', content: persona }, ...messages]
+    finalMessages = [{ role: 'system', content: buildPersonaForUser() }, ...messages]
   }
 
   const res = await fetch(BACKEND_CHAT_URL, {

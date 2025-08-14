@@ -1,12 +1,17 @@
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, computed, inject } from 'vue'
 import ModelSelect from './ModelSelect.vue'
 import { authService } from '../services/authService'
-import { sendChatViaBackend } from '../services/chatAI'
+import { sendChatViaBackend, buildPersonaForUser } from '../services/chatAI'
 import userWomanUrl from '../assets/user-woman.svg'
+import LanguageSupport from '../LangSup.json'
 
 const models = ['gpt-4o-mini', 'gpt-4.1', 'o4-mini', 'o3-mini', 'llama3.1:8b']
 const model = ref(localStorage.getItem('chat.model') || models[0])
+
+// Language injection
+const lang = inject('lang', ref('EN'))
+const currentLangData = computed(() => LanguageSupport[lang.value] || LanguageSupport.EN)
 
 const messages = ref([])
 // Detect user timezone for time-of-day greeting logic (and potential future use)
@@ -14,10 +19,10 @@ const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
 
 function getTimeOfDayGreeting(date = new Date()){
   const h = date.getHours()
-  if (h >= 5 && h < 12) return 'Good morning'
-  if (h >= 12 && h < 17) return 'Good afternoon'
-  if (h >= 17 && h < 22) return 'Good evening'
-  return 'Good night'
+  if (h >= 5 && h < 12) return currentLangData.value.good_morning
+  if (h >= 12 && h < 17) return currentLangData.value.good_afternoon
+  if (h >= 17 && h < 22) return currentLangData.value.good_evening
+  return currentLangData.value.good_night
 }
 
 const input = ref('')
@@ -28,14 +33,26 @@ const chatScrollRef = ref(null)
 const session = ref(null)
 const checkingSession = ref(false)
 
+// Helper to apply preferred language safely
+function applyPreferredLang(preferred){
+  const allowed = new Set(['EN','PT','ES','DE','GE','RU'])
+  if (!preferred || typeof preferred !== 'string') return
+  const code = preferred.toUpperCase()
+  if (allowed.has(code)) lang.value = code
+}
+
 async function checkSession() {
   try {
     checkingSession.value = true
-    const data = await authService.getSessionData()
+    // Capture any token from URL (?au=...) and/or localStorage, then pass it explicitly
+    const token = authService.storeInitialToken()
+    const data = await authService.getSessionData({ token })
     // Accept several possible shapes from the backend
     const isLoggedIn = !!(data && (data.ok || data.success || data.loggedIn) && (data.user || data.session || data.username))
     session.value = isLoggedIn ? (data.user || data.session || { username: data.username }) : null
-    console.log('Logged in', session.value, data.username)
+
+
+    console.log('Logged in', session.value, data && (data.username || (data.user && data.user.username)))
     return session.value
   } finally {
     checkingSession.value = false
@@ -43,13 +60,24 @@ async function checkSession() {
 }
 
 async function onLoginClick(){
-  // Ensure logged in; will redirect if not
-  const data = await authService.ensureLoggedIn()
-  if (data) {
-    // stays on page if authenticated
-    session.value = data.user || data.session || { username: data.username }
-
-  }
+  // Use centralized handler so it can push language via setGlobalState
+  await authService.handleAuthentication({
+    setGlobalState: (patch) => {
+      if (Object.prototype.hasOwnProperty.call(patch, 'lang')) {
+        applyPreferredLang(patch.lang)
+      }
+      // You could update other globals here if needed (e.g., theme)
+    },
+    onAuthenticated: (sess) => {
+      // Keep local session state for UI
+      if (sess) {
+        const u = sess.user || sess.session || { username: sess.username, email: sess.email }
+        session.value = u
+        // As a safety, also apply preferred language if present in session payload
+        applyPreferredLang(u && u.lang)
+      }
+    },
+  })
 }
 
 function persistModel(val){
@@ -59,6 +87,8 @@ function persistModel(val){
 function appendMessage(role, content){
   messages.value.push({ id: Date.now() + Math.random(), role, content })
 }
+
+// Build a persona system prompt based on the current logged-in user (imported from service)
 
 async function send(){
   const text = input.value.trim()
@@ -76,9 +106,18 @@ async function send(){
 
   try {
     // Send full conversation to backend
+        // Build message list and inject a single system persona message
+    const baseMessages = messages.value
+      .filter(m => !m.loading)
+      .map(m => ({ role: m.role, content: m.content }))
+    const hasSystem = baseMessages.length > 0 && baseMessages[0].role === 'system'
+    const finalMessages = hasSystem
+      ? baseMessages
+      : [{ role: 'system', content: buildPersonaForUser(session.value) }, ...baseMessages]
+
     const reply = await sendChatViaBackend({
       model: model.value,
-      messages: messages.value.filter(m => !m.loading).map(m => ({ role: m.role, content: m.content }))
+      messages: finalMessages
     })
     const idx = messages.value.findIndex(m => m.id === thinkingId)
     if (idx !== -1) {
@@ -142,12 +181,21 @@ onMounted(async () => {
     s = await checkSession()
   } catch {}
 
-  // Compose dynamic greeting based on local time
+  // Compose dynamic greeting based on local time and language
   const greeting = getTimeOfDayGreeting()
   const name = s && s.username ? s.username : null
-  const greetingLine = name
-    ? `${greeting}, ${name}. I\'m Moo-AI. How may I serve you today?`
-    : `${greeting}, Your grace. I\'m Moo-AI. How may I serve you today?`
+  const uname = name ? name.toString().trim().toLowerCase() : ''
+  let template
+  if (uname === 'hungryhippo') {
+    template = currentLangData.value.greeting_casual
+  } else if (uname === 'aline foch') {
+    template = currentLangData.value.greeting_formal
+  } else if (name) {
+    template = currentLangData.value.greeting_user.replace('{name}', name)
+  } else {
+    template = currentLangData.value.greeting_guest
+  }
+  const greetingLine = template.replace('{greeting}', greeting)
 
   appendMessage('assistant', greetingLine)
 
@@ -166,8 +214,8 @@ onMounted(async () => {
             {{ session.username || session.name || session.email || 'User' }}
           </span>
           <button v-else class="login-btn" :disabled="checkingSession" @click="onLoginClick">
-            <span v-if="!checkingSession">Login</span>
-            <span v-else>Checking…</span>
+            <span v-if="!checkingSession">{{ currentLangData.login }}</span>
+            <span v-else>{{ currentLangData.checking }}</span>
           </button>
         </div>
       </div>
@@ -200,16 +248,16 @@ onMounted(async () => {
         <textarea
           v-model="input"
           :disabled="sending"
-          placeholder="Type your message..."
+          :placeholder="currentLangData.Type_a_message"
           rows="1"
           @keydown="onKeydown"
         ></textarea>
-        <button class="send" :disabled="sending || !input.trim()" @click="send" aria-label="Send message">
-          <span v-if="!sending">Send</span>
+        <button class="send" :disabled="sending || !input.trim()" @click="send" :aria-label="currentLangData.Send">
+          <span v-if="!sending">{{ currentLangData.Send }}</span>
           <span v-else>…</span>
         </button>
       </div>
-      <div class="tips">Press Enter to send • Shift+Enter for new line</div>
+      <div class="tips">{{ currentLangData.tips_send }}</div>
     </footer>
   </div>
 </template>

@@ -1,13 +1,36 @@
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, provide, computed } from 'vue'
 import ChatApp from './components/ChatApp.vue'
 import logo from './assets/mooai-logo.svg'
+import LanguageSupport from './LangSup.json'
 
 const tabs = ['chat', 'settings']
 const activeTab = ref('chat')
 
 const THEME_KEY = 'app.theme'
 const theme = ref(localStorage.getItem(THEME_KEY) || 'dark') // 'dark' | 'light' | 'feminine'
+
+// Global language state with persistence
+const LANG_KEY = 'app.lang'
+const lang = ref(localStorage.getItem(LANG_KEY) || 'EN')
+watch(lang, (v) => localStorage.setItem(LANG_KEY, v))
+
+// Provide lang globally
+provide('lang', lang)
+
+// Provide computed language data (and use locally in this component too)
+const currentLangData = computed(() => LanguageSupport[lang.value] || LanguageSupport.EN)
+provide('currentLangData', currentLangData)
+
+// Language options with icons from public/assets
+const languageOptions = [
+  { code: 'EN', labelKey: 'EN_native', icon: '/assets/gb.svg' },
+  { code: 'PT', labelKey: 'PT_native', icon: '/assets/br.svg' },
+  { code: 'ES', labelKey: 'ES_native', icon: '/assets/es.svg' },
+  { code: 'DE', labelKey: 'DE_native', icon: '/assets/de.svg' },
+  { code: 'GE', labelKey: 'GE_native', icon: '/assets/ge.svg' },
+  { code: 'RU', labelKey: 'RU_native', icon: '/assets/ru.svg' }
+]
 
 function applyThemeClass(t){
   const root = document.documentElement
@@ -35,35 +58,47 @@ onMounted(() => {
         <span class="brand-name">mooAI</span>
       </div>
       <nav class="tabs" role="tablist">
-        <button :aria-selected="activeTab==='chat'" :class="{active: activeTab==='chat'}" @click="activeTab='chat'" role="tab">Chat</button>
-        <button :aria-selected="activeTab==='settings'" :class="{active: activeTab==='settings'}" @click="activeTab='settings'" role="tab">Settings</button>
+        <button :aria-selected="activeTab==='chat'" :class="{active: activeTab==='chat'}" @click="activeTab='chat'" role="tab">{{ currentLangData.chat_tab }}</button>
+        <button :aria-selected="activeTab==='settings'" :class="{active: activeTab==='settings'}" @click="activeTab='settings'" role="tab">{{ currentLangData.settings_tab }}</button>
       </nav>
       <div class="right-slot"></div>
     </header>
 
-    <section v-if="activeTab==='chat'" class="tab-panel" role="tabpanel" aria-label="Chat">
+    <section v-if="activeTab==='chat'" class="tab-panel" role="tabpanel" :aria-label="currentLangData.chat_tab">
       <ChatApp />
     </section>
 
-    <section v-else class="tab-panel settings" role="tabpanel" aria-label="Settings">
+    <section v-else class="tab-panel settings" role="tabpanel" :aria-label="currentLangData.settings_tab">
       <div class="settings-card">
-        <h2>Appearance</h2>
-        <p class="hint">Choose your preferred style.</p>
+        <h2>{{ currentLangData.language_title }}</h2>
+        <p class="hint">{{ currentLangData.language_hint }}</p>
+
+        <div class="theme-options" style="margin-bottom: 1.25rem;">
+          <label v-for="opt in languageOptions" :key="opt.code" class="theme-option">
+            <input type="radio" name="lang" :value="opt.code" v-model="lang" />
+            <img v-if="opt.icon" :src="opt.icon" :alt="opt.code + ' flag'" class="lang-flag" />
+            <span>{{ currentLangData[opt.labelKey] || opt.code }}</span>
+          </label>
+        </div>
+
+        <h2>{{ currentLangData.appearance_title }}</h2>
+        <p class="hint">{{ currentLangData.appearance_hint }}</p>
+
         <div class="theme-options">
           <label class="theme-option">
             <input type="radio" name="theme" value="dark" v-model="theme" />
             <span class="swatch dark"></span>
-            <span>Default (Dark)</span>
+            <span>{{ currentLangData.theme_default }}</span>
           </label>
           <label class="theme-option">
             <input type="radio" name="theme" value="light" v-model="theme" />
             <span class="swatch light"></span>
-            <span>Light</span>
+            <span>{{ currentLangData.theme_light }}</span>
           </label>
           <label class="theme-option">
             <input type="radio" name="theme" value="feminine" v-model="theme" />
             <span class="swatch feminine"></span>
-            <span>Elegant</span>
+            <span>{{ currentLangData.theme_feminine }}</span>
           </label>
         </div>
       </div>
@@ -87,6 +122,7 @@ onMounted(() => {
 .settings-card .hint { margin: 0 0 1rem; color: var(--muted-foreground, #aaa); }
 .theme-options { display: grid; gap: .75rem; }
 .theme-option { display: inline-flex; align-items: center; gap: .6rem; padding: .5rem .6rem; border-radius: .75rem; border: 1px dashed var(--border, #333); background: var(--muted, #181818); }
+.lang-flag { width: 22px; height: 22px; border-radius: 999px; border: 1px solid var(--border, #333); }
 .theme-option input { accent-color: var(--accent, #6ee7b7); }
 .swatch { width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--border, #333); display:inline-block; }
 .swatch.dark { background: linear-gradient(135deg, #0b0c10, #1a1b22); }
