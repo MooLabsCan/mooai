@@ -60,6 +60,18 @@ const getSessionData = async (payload = {}) => {
       return { ok: false, status: 'unauthenticated', user: null, received_token: token, raw: text }
     }
 
+    // If the backend explicitly reports an invalid token, clear it and report failure
+    if (parsed.status === 'invalid_token' || (typeof parsed.message === 'string' && parsed.message.toLowerCase().includes('authentication failed'))) {
+      try { localStorage.removeItem('authToken') } catch {}
+      return {
+        ...parsed,
+        ok: false,
+        status: 'invalid_token',
+        user: null,
+        received_token: token,
+      }
+    }
+
     // Determine authentication status from common flags
     const hasAuthFlag = !!(parsed.status === 'authenticated' || parsed.ok || parsed.success || parsed.loggedIn)
     const status = hasAuthFlag ? 'authenticated' : 'unauthenticated'

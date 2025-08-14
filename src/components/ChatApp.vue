@@ -209,7 +209,7 @@ onMounted(async () => {
       <div class="controls">
         <ModelSelect :model="model" :models="models" @update:model="val => { model.value = val; persistModel(val) }" />
         <div class="session">
-          <span v-if="session" class="user-chip" title="Logged in">
+          <span v-if="session" class="user-chip" title="Logged in" @click="onLoginClick">
             <span class="dot"></span>
             {{ session.username || session.name || session.email || 'User' }}
           </span>
