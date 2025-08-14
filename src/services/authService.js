@@ -149,12 +149,6 @@ const handleAuthentication = async (options = {}) => {
         }
       }
 
-      // Compute streak if possible
-      let practiceStreak = null
-      if (calculateStreak && datesData) {
-        try { practiceStreak = calculateStreak(datesData) } catch {}
-      }
-
       // Update global state if a setter is provided
       if (typeof setGlobalState === 'function') {
         setGlobalState({
@@ -185,9 +179,7 @@ const handleAuthentication = async (options = {}) => {
   } catch (error) {
     console.error('Authentication failed:', error)
     if (typeof onFailed === 'function') onFailed(error)
-    if (router && router.push) {
-      try { await router.push('/login') } catch {}
-    }
+    loginRedirect();
     return null
   } finally {
     if (loadingRef && typeof loadingRef === 'object') loadingRef.value = false

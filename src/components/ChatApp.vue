@@ -61,7 +61,7 @@ async function checkSession() {
 
 async function onLoginClick(){
   // Use centralized handler so it can push language via setGlobalState
-  await authService.handleAuthentication({
+  const result = await authService.handleAuthentication({
     setGlobalState: (patch) => {
       if (Object.prototype.hasOwnProperty.call(patch, 'lang')) {
         applyPreferredLang(patch.lang)
@@ -78,6 +78,12 @@ async function onLoginClick(){
       }
     },
   })
+
+  // If not authenticated, redirect using ensureLoggedIn (which will perform loginRedirect)
+  const isAuthed = !!(result && result.session && (result.session.status === 'authenticated' || result.session.ok || result.session.success))
+  if (!isAuthed) {
+    await authService.ensureLoggedIn()
+  }
 }
 
 function persistModel(val){
