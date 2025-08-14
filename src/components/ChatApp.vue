@@ -67,19 +67,21 @@ async function send(){
   await nextTick()
   scrollToBottom()
 
-  // Show a temporary assistant message while contacting backend
+  // Show a temporary assistant message while contacting backend (animated loading dots)
   const thinkingId = Date.now() + Math.random()
-  messages.value.push({ id: thinkingId, role: 'assistant', content: 'Thinking…' })
+  messages.value.push({ id: thinkingId, role: 'assistant', content: '', loading: true })
   await nextTick(); scrollToBottom()
 
   try {
     // Send full conversation to backend
     const reply = await sendChatViaBackend({
       model: model.value,
-      messages: messages.value.map(m => ({ role: m.role, content: m.content }))
+      messages: messages.value.filter(m => !m.loading).map(m => ({ role: m.role, content: m.content }))
     })
     const idx = messages.value.findIndex(m => m.id === thinkingId)
-    if (idx !== -1) messages.value[idx] = { id: thinkingId, role: 'assistant', content: reply || '(no content)' }
+    if (idx !== -1) {
+      await typeOutMessage(thinkingId, reply || '(no content)')
+    }
   } catch (e) {
     const idx = messages.value.findIndex(m => m.id === thinkingId)
     const msg = e && e.message ? `Error: ${e.message}` : 'Error contacting AI service.'
@@ -101,6 +103,34 @@ function scrollToBottom(){
   const el = chatScrollRef.value
   if (!el) return
   el.scrollTop = el.scrollHeight
+}
+
+function sleep(ms){
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+async function typeOutMessage(id, fullText, baseDelay = 15){
+  const idx = messages.value.findIndex(m => m.id === id)
+  if (idx === -1) return
+  // Turn off the loading state and start with an empty bubble
+  messages.value[idx].loading = false
+  messages.value[idx].content = ''
+  await nextTick(); scrollToBottom()
+
+  for (let i = 0; i < fullText.length; i++) {
+    messages.value[idx].content += fullText[i]
+
+    // Occasionally flush to DOM and keep the view pinned to bottom
+    if (i % 3 === 0 || fullText[i] === '\n') {
+      await nextTick(); scrollToBottom()
+    }
+
+    const ch = fullText[i]
+    const delay = ch === '\n' ? baseDelay * 4 : (ch === '.' || ch === ',') ? baseDelay * 3 : baseDelay
+    await sleep(delay)
+  }
+
+  await nextTick(); scrollToBottom()
 }
 
 onMounted(() => {
@@ -139,7 +169,18 @@ onMounted(() => {
           <img v-if="m.role === 'user'" :src="userWomanUrl" alt="User" class="avatar-img" />
           <span v-else class="glow-dot" aria-hidden="true"></span>
         </div>
-        <div class="bubble" v-html="m.content.replace(/\n/g,'<br/>')"></div>
+        <div class="bubble">
+          <template v-if="m.loading">
+            <span class="loading-dots" aria-label="Loading" role="status">
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </span>
+          </template>
+          <template v-else>
+            <span v-html="m.content.replace(/\n/g,'<br/>')"></span>
+          </template>
+        </div>
       </div>
     </main>
 
@@ -230,6 +271,14 @@ onMounted(() => {
 .msg .bubble { padding: .75rem .9rem; border-radius: .75rem; border: 1px solid var(--border); background: #12131a; }
 .msg[data-role="user"] .bubble { background: #0f1320; }
 .msg[data-role="assistant"] .bubble { background: #101618; }
+
+/* Loading dots animation */
+.loading-dots { display: inline-flex; gap: 6px; align-items: center; }
+.loading-dots .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted-foreground); opacity: .7; animation: bounce 1.2s infinite ease-in-out; }
+.loading-dots .dot:nth-child(1) { animation-delay: 0s; }
+.loading-dots .dot:nth-child(2) { animation-delay: .15s; }
+.loading-dots .dot:nth-child(3) { animation-delay: .3s; }
+@keyframes bounce { 0%, 80%, 100% { transform: translateY(0); opacity: .5; } 40% { transform: translateY(-4px); opacity: 1; } }
 
 .composer {
   padding: .75rem; border-top: 1px solid var(--border); background: linear-gradient(0deg, rgba(255,255,255,0.02), rgba(255,255,255,0)), var(--panel);

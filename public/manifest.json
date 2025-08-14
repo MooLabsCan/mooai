@@ -1,0 +1,17 @@
+{
+  "name": "Moo-AI",
+  "short_name": "MooAI",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0c10",
+  "theme_color": "#0b0c10",
+  "description": "Moo-AI — your personable AI assistant. Ask anything and get helpful, concise answers.",
+  "icons": [
+    {
+      "src": "/mooai-favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
