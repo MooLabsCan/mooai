@@ -1,0 +1,4 @@
+# Ignore secrets and runtime files
+.env
+.env.local
+*.log
