@@ -4,18 +4,17 @@ const apiUrl = 'https://liap.ca/api/check_session.php'
 //const apiUrl = '/api/check_session.php'
 
 // Lightweight module-local state (avoids hard dependency on app-level globals)
-const authState = { og: null }
 
 // Extract token from URL (?au=...) or localStorage and persist it.
 // Also captures optional origin (?og=...) into a local state variable.
 const storeInitialToken = () => {
   const urlParams = new URLSearchParams(window.location.search)
   const urlToken = urlParams.get('au')
-  const origin = urlParams.get('og')
+
 
   if (urlToken) {
+    console.log('token param found')
     localStorage.setItem('authToken', urlToken)
-    if (origin) authState.og = origin
 
     // If desired, we could also clean the URL here without reload.
     // Left commented to avoid surprising navigation.
@@ -26,6 +25,7 @@ const storeInitialToken = () => {
 
     return urlToken
   }
+  console.log('no token found')
 
   return localStorage.getItem('authToken')
 }
@@ -35,8 +35,17 @@ const getSessionData = async (payload = {}) => {
     // Ensure a token is provided to the backend. Pull from payload or stored value.
     const providedToken = payload && payload.token
     const normalizedProvided = typeof providedToken === 'string' ? providedToken.trim() : providedToken
-    const storedToken = storeInitialToken()
-    const token = normalizedProvided || storedToken
+
+    // Prefer explicitly provided token; otherwise check localStorage, and only as a last resort inspect URL once.
+    let token = normalizedProvided
+    if (!token) {
+      try {
+        token = localStorage.getItem('authToken')
+      } catch {}
+    }
+    if (!token) {
+      token = storeInitialToken()
+    }
 
     // If no valid token is available, do NOT call the API.
     if (!token || token === '' || token === 'null' || token === 'undefined') {
