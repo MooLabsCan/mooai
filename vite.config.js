@@ -14,6 +14,12 @@ export default defineConfig({
         // so that PHP files are executed by PHP instead of served as static text.
         rewrite: (path) => path.replace(/^\/backend/, '/mooai/backend'),
       },
+      // Proxy for authService and other PHP endpoints under /api
+      '/api': {
+        target: 'http://localhost/mapmoo',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
 })

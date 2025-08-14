@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#0b0c10"/>
+      <stop offset="1" stop-color="#1a1b22"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="40" fill="url(#g)"/>
+  <!-- speech bubble -->
+  <g transform="translate(156,36)">
+    <rect x="0" y="0" width="84" height="60" rx="12" fill="#ffffff" stroke="#0a0a0a" stroke-width="6"/>
+    <path d="M20 60 L34 60 L26 76 Z" fill="#ffffff" stroke="#0a0a0a" stroke-width="6"/>
+    <circle cx="24" cy="30" r="6" fill="#0a0a0a"/>
+    <circle cx="42" cy="30" r="6" fill="#0a0a0a"/>
+    <circle cx="60" cy="30" r="6" fill="#0a0a0a"/>
+  </g>
+  <!-- cute cow -->
+  <g transform="translate(32,56)">
+    <circle cx="72" cy="64" r="56" fill="#ffffff" stroke="#0a0a0a" stroke-width="8"/>
+    <!-- ear left -->
+    <path d="M8 44 C4 28, 28 20, 36 36 C28 44, 20 48, 8 44 Z" fill="#ffd5e5" stroke="#0a0a0a" stroke-width="8"/>
+    <!-- ear right -->
+    <path d="M136 44 C140 28, 116 20, 108 36 C116 44, 124 48, 136 44 Z" fill="#ffd5e5" stroke="#0a0a0a" stroke-width="8"/>
+    <!-- forelock -->
+    <path d="M64 4 C72 0, 92 4, 96 12 C88 8, 80 8, 72 16 C68 12, 66 8, 64 4 Z" fill="#a35a00" stroke="#0a0a0a" stroke-width="6"/>
+    <!-- patch -->
+    <path d="M96 26 C120 34, 128 70, 108 86 C88 102, 64 84, 70 58 C74 42, 84 30, 96 26 Z" fill="#a6642a"/>
+    <!-- eyes -->
+    <circle cx="54" cy="62" r="9" fill="#0a0a0a"/>
+    <circle cx="94" cy="68" r="9" fill="#0a0a0a"/>
+    <!-- body -->
+    <rect x="24" y="108" width="96" height="72" rx="26" fill="#ffffff" stroke="#0a0a0a" stroke-width="8"/>
+    <!-- hooves -->
+    <rect x="36" y="168" width="24" height="20" rx="8" fill="#a6642a" stroke="#0a0a0a" stroke-width="6"/>
+    <rect x="104" y="168" width="24" height="20" rx="8" fill="#a6642a" stroke="#0a0a0a" stroke-width="6"/>
+    <!-- snout -->
+    <rect x="56" y="86" width="56" height="38" rx="18" fill="#f3c6d7" stroke="#0a0a0a" stroke-width="6"/>
+    <circle cx="74" cy="104" r="7" fill="#0a0a0a"/>
+    <circle cx="96" cy="104" r="7" fill="#0a0a0a"/>
+  </g>
+</svg>

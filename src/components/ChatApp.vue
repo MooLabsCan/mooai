@@ -35,6 +35,7 @@ async function checkSession() {
     // Accept several possible shapes from the backend
     const isLoggedIn = !!(data && (data.ok || data.success || data.loggedIn) && (data.user || data.session || data.username))
     session.value = isLoggedIn ? (data.user || data.session || { username: data.username }) : null
+    console.log('Logged in', session.value, data.username)
     return session.value
   } finally {
     checkingSession.value = false
@@ -47,6 +48,7 @@ async function onLoginClick(){
   if (data) {
     // stays on page if authenticated
     session.value = data.user || data.session || { username: data.username }
+
   }
 }
 
@@ -133,14 +135,23 @@ async function typeOutMessage(id, fullText, baseDelay = 15){
   await nextTick(); scrollToBottom()
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // Try to pre-check session to personalize greeting if possible
+  let s = null
+  try {
+    s = await checkSession()
+  } catch {}
+
   // Compose dynamic greeting based on local time
   const greeting = getTimeOfDayGreeting()
-  appendMessage('assistant', `${greeting}, Your grace. I\'m Moo-AI. How may I serve you today?`)
+  const name = s && s.username ? s.username : null
+  const greetingLine = name
+    ? `${greeting}, ${name}. I\'m Moo-AI. How may I serve you today?`
+    : `${greeting}, Your grace. I\'m Moo-AI. How may I serve you today?`
+
+  appendMessage('assistant', greetingLine)
 
   scrollToBottom()
-  // Try to pre-check session silently
-  checkSession().catch(() => {})
 })
 </script>
 
@@ -263,7 +274,7 @@ onMounted(() => {
   overflow: auto;
   padding: 1rem;
 }
-.spacer { height: .5rem; }
+.spacer { height: .4rem; }
 .msg { display: grid; grid-template-columns: 36px 1fr; gap: .5rem .75rem; margin-bottom: .75rem; align-items: start; }
 .msg .avatar { width: 36px; height: 36px; display: grid; place-items: center; background: var(--muted); border-radius: 50%; font-size: 18px; overflow: hidden; }
 .msg .avatar .avatar-img { width: 24px; height: 24px; object-fit: cover; display: block; }
@@ -309,6 +320,20 @@ textarea:disabled { opacity: .7; }
 .send[disabled] { opacity: .6; filter: grayscale(30%); }
 
 .tips { margin-top: .5rem; font-size: .8rem; color: var(--muted-foreground); text-align: center; }
+
+/* Mobile tweaks: fix input area to bottom */
+@media (max-width: 899px) {
+  .chat-shell { grid-template-rows: auto 1fr; }
+  .composer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+  }
+  /* Ensure chat content isn't hidden behind fixed composer */
+  .chat { padding-bottom: 140px; }
+}
 
 /* Desktop tweaks */
 @media (min-width: 900px) {

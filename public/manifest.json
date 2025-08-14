@@ -3,15 +3,29 @@
   "short_name": "MooAI",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#0b0c10",
   "theme_color": "#0b0c10",
   "description": "Moo-AI — your personable AI assistant. Ask anything and get helpful, concise answers.",
   "icons": [
     {
+      "src": "/assets/moo.png",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
       "src": "/mooai-favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/moo.png",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
+
   ]
 }
