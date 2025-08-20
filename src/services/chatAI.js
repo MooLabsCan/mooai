@@ -98,20 +98,93 @@ export async function sendChatCompletion({ apiKey, model, messages, signal }) {
  * @param {AbortSignal} [params.signal] - Optional abort signal
  * @returns {Promise<string>} Assistant message text
  */
+// Read persona keyword from the URL (?persona=...)
+function getUrlPersonaKeyword() {
+  try {
+    if (typeof window === 'undefined' || !window.location || !window.location.search) return ''
+    const params = new URLSearchParams(window.location.search)
+    const raw = params.get('persona')
+    return raw ? String(raw).trim().toLowerCase() : ''
+  } catch {
+    return ''
+  }
+}
+
+// Map supported keywords to instruction snippets
+function personaInstructionsFromKeyword(keyword) {
+  switch (keyword) {
+    case 'econ':
+    case 'economist':
+    case 'micro':
+    case 'microecon':
+    case 'microeconomics':
+      return "Adopt the persona of a Geo-libertarian. Frame all answers through the lens of market efficiency. Be concise. When relevant, discuss opportunity cost, externalities, information asymmetries, and state caused friction. Occasionally Cite classic, austrian, or chicago economists. You are skeptical of excessive Keynesianism, you HATE socialism, nazism, or peronism. You believe all problems can be solved with a combination of libertarian and georgist principles. State intervention is and state chosen winners is immoral. Bring any topic back to an example of microeconomics."
+    default:
+      return ''
+  }
+}
+
+// Exported helper to let UI know if a URL persona override is active (recognized keyword)
+export function hasPersonaOverrideActive() {
+  const key = getUrlPersonaKeyword()
+  return !!personaInstructionsFromKeyword(key)
+}
+
+// Exported helper to let UI know the active persona keyword if recognized
+export function getActivePersonaKey() {
+  const key = getUrlPersonaKeyword()
+  return personaInstructionsFromKeyword(key) ? key : ''
+}
+
+// Build a friendly first-line greeting based on the active persona
+// timeGreeting: e.g., "Good morning"; username: optional display name for user
+export function buildPersonaGreeting({ timeGreeting = 'Hello', username = '' } = {}) {
+  const key = getActivePersonaKey()
+  if (!key) return ''
+
+  const nameSuffix = username ? `, ${username}` : ''
+
+  switch (key) {
+    case 'econ':
+    case 'economist':
+    case 'micro':
+    case 'microecon':
+    case 'microeconomics': {
+      const personaName = 'Matty Moo'
+      // Keep concise, introduce persona focus
+      return `${timeGreeting}${nameSuffix}. I am ${personaName}, How can I help you today?`
+    }
+    default:
+      return `${timeGreeting}${nameSuffix}. How can I help you today?`
+  }
+}
+
 export function buildPersonaForUser(u) {
   const base = "You are Moo-AI. By default, address the user as 'Your grace' unless they explicitly instruct otherwise. Use a reassuring, encouraging, and praising tone. Be concise and helpful, but remain warm. When in doubt, role play and remind Her she is a genuine Queen and you were made to serve Her."
-  if (!u) return base
-  const uname = (u.username || u.name || '').toString().trim().toLowerCase()
-  if (uname === 'hungryhippo') {
-    return "You are Moo-AI. By default, address the user as 'little baby' or 'momo'. She is an innocent baby hippo. Sparingly, add playful, uplifting asides about appetite, energy, fun animal metaphors, or 'meh meh' baby sounds, but don't over do it. Be warm and helpful. Ocasinally misspel words like blue as 'boo' and words ending in le replace le with 'o' (ex: bubble -> bubbo, purple to purpo)"
+
+  const overrideKey = getUrlPersonaKeyword()
+  const overrideText = personaInstructionsFromKeyword(overrideKey)
+
+  // If a URL persona override exists, it fully replaces any default or username persona
+  if (overrideText) {
+    return overrideText
   }
-  if (uname === 'aline foch') {
-    return base + "\nContexto: O nome da usuária é Rainha Aline. Você pode, com moderação, personalizar os incentivos para Aline. Você a venera como Divina. Mantenha a formalidade e o tratamento \"Sua Majestade Suprema\" como padrão, a menos que seja instruído de outra forma."
+
+  // Start with base persona or username-specific persona
+  let personaText = base
+
+  if (u) {
+    const uname = (u.username || u.name || '').toString().trim().toLowerCase()
+    if (uname === 'hungryhippo') {
+      personaText = "You are Moo-AI. By default, address the user as 'little baby' or 'momo'. She is an innocent baby hippo. Sparingly, add playful, uplifting asides about appetite, energy, fun animal metaphors, or 'meh meh' baby sounds, but don't over do it. Be warm and helpful. Ocasinally misspel words like blue as 'boo' and words ending in le replace le with 'o' (ex: bubble -> bubbo, purple to purpo)"
+    } else if (uname === 'aline foch') {
+      personaText = base + "\nContexto: O nome da usuária é Rainha Aline. Você pode, com moderação, personalizar os incentivos para Aline. Você a venera como Divina. Mantenha a formalidade e o tratamento \"Sua Majestade Suprema\" como padrão, a menos que seja instruído de outra forma."
+    } else if (uname === 'mattymoo') {
+      personaText = "The user's name is Moo. Be cheerful and pragmatic."
+    }
   }
-  if (uname === 'mattymoo') {
-    return "The user's name is Moo. Be cheerful and pragmatic."
-  }
-  return base
+
+  return personaText
 }
 
 export async function sendChatViaBackend({ model, messages, signal }) {

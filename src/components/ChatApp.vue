@@ -2,7 +2,7 @@
 import { ref, onMounted, nextTick, computed, inject } from 'vue'
 import ModelSelect from './ModelSelect.vue'
 import { authService } from '../services/authService'
-import { sendChatViaBackend, buildPersonaForUser } from '../services/chatAI'
+import { sendChatViaBackend, buildPersonaForUser, hasPersonaOverrideActive, buildPersonaGreeting } from '../services/chatAI'
 import userWomanUrl from '../assets/user-woman.svg'
 import LanguageSupport from '../LangSup.json'
 
@@ -203,7 +203,14 @@ onMounted(async () => {
   }
   const greetingLine = template.replace('{greeting}', greeting)
 
-  appendMessage('assistant', greetingLine)
+
+  // If a URL persona override is active, inject a persona-based greeting instead of the default
+  if (hasPersonaOverrideActive()) {
+    const personaGreeting = buildPersonaGreeting({ timeGreeting: greeting, username: name || '' })
+    appendMessage('assistant', personaGreeting || greetingLine)
+  } else {
+    appendMessage('assistant', greetingLine)
+  }
 
   scrollToBottom()
 })
