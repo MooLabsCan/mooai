@@ -27,6 +27,22 @@ const personaOptions = [
 ]
 const selectedPersona = ref(localStorage.getItem(PERSONA_KEY) || '')
 
+// Share link
+const copied = ref(false)
+let copiedTimer = null
+function copyShareLink() {
+  const base = window.location.origin + window.location.pathname
+  const params = new URLSearchParams()
+  if (selectedPersona.value) params.set('persona', selectedPersona.value)
+  if (model.value) params.set('model', model.value)
+  const url = params.toString() ? `${base}?${params}` : base
+  navigator.clipboard.writeText(url).then(() => {
+    copied.value = true
+    clearTimeout(copiedTimer)
+    copiedTimer = setTimeout(() => { copied.value = false }, 2000)
+  })
+}
+
 watch(selectedPersona, async (val, oldVal) => {
   localStorage.setItem(PERSONA_KEY, val)
   if (val === oldVal) return
@@ -251,6 +267,10 @@ onMounted(async () => {
           </option>
         </select>
         <div class="session">
+          <button class="share-btn" :class="{ copied }" @click="copyShareLink" :title="copied ? 'Copied!' : 'Copy share link'">
+            <svg v-if="!copied" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            <span>{{ copied ? 'Copied!' : 'Share' }}</span>
+          </button>
           <span v-if="session" class="user-chip" title="Logged in" @click="onLoginClick">
             <span class="dot"></span>
             {{ session.username || session.name || session.email || 'User' }}
@@ -320,7 +340,7 @@ onMounted(async () => {
 .chat-shell {
   display: grid;
   grid-template-rows: auto 1fr auto;
-  height: 100dvh;
+  height: 100%;
   background: var(--background);
   color: var(--foreground);
 }
@@ -355,7 +375,16 @@ onMounted(async () => {
   outline: none;
 }
 .persona-select:focus { border-color: var(--accent); }
-.session { display: flex; align-items: center; margin-left: auto; }
+.session { display: flex; align-items: center; gap: .5rem; margin-left: auto; }
+.share-btn {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .35rem .6rem; border-radius: .6rem;
+  border: 1px solid var(--border); background: var(--muted);
+  color: var(--muted-foreground); font-size: .8rem; cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.share-btn:hover { color: var(--foreground); border-color: var(--accent); }
+.share-btn.copied { color: var(--accent); border-color: var(--accent); background: rgba(110,231,183,.08); }
 .login-btn {
   padding: .5rem .8rem;
   border-radius: .6rem;
@@ -420,20 +449,6 @@ textarea:disabled { opacity: .7; }
 .send[disabled] { opacity: .6; filter: grayscale(30%); }
 
 .tips { margin-top: .5rem; font-size: .8rem; color: var(--muted-foreground); text-align: center; }
-
-/* Mobile tweaks: fix input area to bottom */
-@media (max-width: 899px) {
-  .chat-shell { grid-template-rows: auto 1fr; }
-  .composer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 20;
-  }
-  /* Ensure chat content isn't hidden behind fixed composer */
-  .chat { padding-bottom: 140px; }
-}
 
 /* Desktop tweaks */
 @media (min-width: 900px) {

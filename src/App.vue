@@ -108,6 +108,7 @@ onMounted(() => {
 
 <style>
 /* Base resets for tabs wrapper to look fine regardless of theme */
+.app-shell { display: grid; grid-template-rows: auto 1fr; height: 100dvh; overflow: hidden; }
 .app-topbar { position: sticky; top: 0; z-index: 50; backdrop-filter: blur(6px); display:flex; align-items:center; gap:.5rem; padding: .25rem .5rem; }
 .brand { display:flex; align-items:center; gap:.4rem; min-width:0; }
 .brand-logo { width:28px; height:28px; border-radius:6px; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
@@ -116,7 +117,8 @@ onMounted(() => {
 .tabs button { padding: .5rem .9rem; border-radius: 999px; border: 1px solid var(--border, #222); background: var(--panel, #111); color: var(--foreground, #eee); opacity: .8; }
 .tabs button.active { opacity: 1; background: var(--muted, #1a1a1a); }
 
-.tab-panel.settings { min-height: 60vh; display: grid; place-items: start center; padding: 2rem 1rem; }
+.tab-panel { min-height: 0; overflow: hidden; }
+.tab-panel.settings { display: grid; place-items: start center; padding: 2rem 1rem; overflow-y: auto; }
 .settings-card { width: min(680px, 92vw); border: 1px solid var(--border, #222); border-radius: 1rem; padding: 1.25rem; background: var(--panel, #111); color: var(--foreground, #eee); box-shadow: 0 6px 20px rgba(0,0,0,.25); }
 .settings-card h2 { margin: 0 0 .25rem; font-size: 1.1rem; }
 .settings-card .hint { margin: 0 0 1rem; color: var(--muted-foreground, #aaa); }

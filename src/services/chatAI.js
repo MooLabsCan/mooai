@@ -103,6 +103,11 @@ export async function sendChatCompletion({ apiKey, model, messages, signal }) {
 }
 
 export function resolveChatModel(preferredModel) {
+  // URL param takes precedence over localStorage
+  try {
+    const urlModel = new URLSearchParams(window.location.search).get('model')
+    if (urlModel && CHAT_MODELS.includes(urlModel)) return urlModel
+  } catch {}
   return CHAT_MODELS.includes(preferredModel) ? preferredModel : DEFAULT_CHAT_MODEL
 }
 
