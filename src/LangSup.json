@@ -29,6 +29,7 @@
     "persona_nobility": "Nobility",
     "persona_linguist": "Linguist",
     "persona_george": "Henry George",
+    "persona_therapist": "Therapist",
 
     "EN_native": "English",
     "PT_native": "Português",
@@ -69,6 +70,7 @@
     "persona_nobility": "Nobreza",
     "persona_linguist": "Especialista em Línguas",
     "persona_george": "Henry George",
+    "persona_therapist": "Terapeuta",
 
     "EN_native": "English",
     "PT_native": "Português",
@@ -109,6 +111,7 @@
     "persona_nobility": "Noblesse",
     "persona_linguist": "Expert Linguiste",
     "persona_george": "Henry George",
+    "persona_therapist": "Therapeute",
 
     "EN_native": "English",
     "PT_native": "Português",
@@ -149,6 +152,7 @@
     "persona_nobility": "Adel",
     "persona_linguist": "Linguistik-Experte",
     "persona_george": "Henry George",
+    "persona_therapist": "Therapeut",
 
     "EN_native": "English",
     "PT_native": "Português",
@@ -189,6 +193,7 @@
     "persona_nobility": "Nobleza",
     "persona_linguist": "Experto Lingüista",
     "persona_george": "Henry George",
+    "persona_therapist": "Terapeuta",
 
     "EN_native": "English",
     "PT_native": "Português",
@@ -229,6 +234,7 @@
     "persona_nobility": "თავადაზნაურობა",
     "persona_linguist": "ენათმეცნიერების ექსპერტი",
     "persona_george": "ჰენრი ჯორჯი",
+    "persona_therapist": "თერაპიატი",
 
     "EN_native": "English",
     "PT_native": "Português",
@@ -269,6 +275,7 @@
     "persona_nobility": "Знать",
     "persona_linguist": "Лингвист-эксперт",
     "persona_george": "Генри Джордж",
+    "persona_therapist": "Терапевт",
 
     "EN_native": "English",
     "PT_native": "Português",

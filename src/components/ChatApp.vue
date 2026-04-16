@@ -23,7 +23,8 @@ const personaOptions = [
   { key: 'economist', labelKey: 'persona_economist' },
   { key: 'nobility', labelKey: 'persona_nobility' },
   { key: 'linguist', labelKey: 'persona_linguist' },
-  { key: 'george', labelKey: 'persona_george' }
+  { key: 'george', labelKey: 'persona_george' },
+  { key: 'therapist', labelKey: 'persona_therapist' }
 ]
 const selectedPersona = ref(localStorage.getItem(PERSONA_KEY) || '')
 
