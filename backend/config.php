@@ -45,21 +45,25 @@ $rootEnvPath = dirname(__DIR__) . DIRECTORY_SEPARATOR . '.env';
 load_env_file($backendEnvPath);
 load_env_file($rootEnvPath);
 
-// CORS: allow local Vite dev origin by default
-$allowedOrigins = [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost',
-    'http://127.0.0.1'
-];
-$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
-if ($origin && in_array($origin, $allowedOrigins, true)) {
+// CORS (dev): allow all origins by reflecting the request origin.
+// This avoids '*' + credentials incompatibility while still effectively permitting any origin.
+$origin = isset($_SERVER['HTTP_ORIGIN']) ? trim($_SERVER['HTTP_ORIGIN']) : '';
+if ($origin !== '') {
     header('Access-Control-Allow-Origin: ' . $origin);
     header('Vary: Origin');
     header('Access-Control-Allow-Credentials: true');
+} else {
+    header('Access-Control-Allow-Origin: *');
 }
 header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+$requestedHeaders = isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS'])
+    ? trim($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS'])
+    : '';
+if ($requestedHeaders !== '') {
+    header('Access-Control-Allow-Headers: ' . $requestedHeaders);
+} else {
+    header('Access-Control-Allow-Headers: Content-Type, Authorization');
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);

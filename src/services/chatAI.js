@@ -5,17 +5,29 @@
 //   console.log(reply)
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
+export const DEFAULT_CHAT_MODEL = 'gpt-4o-mini'
+export const CHAT_MODELS = [
+  'gpt-4o-mini',
+  'gpt-5',
+  'gpt-5-mini',
+  'gpt-5-nano',
+  'gpt-4.1',
+  'o4-mini',
+  'o3-mini',
+  'llama3.1:8b'
+]
 // Backend endpoint (PHP proxy)
-// In development, this project uses Vite's dev proxy (see vite.config.js) to forward
-// requests from "/backend" to Apache at http://localhost/mooai/backend.
-// If you are NOT using the Vite proxy (e.g., opening the HTML directly or a different setup),
-// you can set VITE_BACKEND_BASE_URL to your server base (e.g., http://localhost/mooai) and
-// this service will construct the absolute URL automatically.
+// Preferred override: VITE_BACKEND_CHAT_URL (full URL to openai_chat.php).
+// Legacy override: VITE_BACKEND_BASE_URL (base URL that will append /backend/openai_chat.php).
+// Default: absolute Apache URL so requests never go to :5173.
 const VITE_ENV = typeof import.meta !== 'undefined' ? (import.meta.env || {}) : {}
+const BACKEND_CHAT_URL_OVERRIDE = (VITE_ENV.VITE_BACKEND_CHAT_URL || '').toString().trim()
 const BACKEND_BASE = (VITE_ENV.VITE_BACKEND_BASE_URL || '').toString().trim()
-const BACKEND_CHAT_URL = BACKEND_BASE
+const BACKEND_CHAT_URL = BACKEND_CHAT_URL_OVERRIDE
+  ? BACKEND_CHAT_URL_OVERRIDE
+  : BACKEND_BASE
   ? `${BACKEND_BASE.replace(/\/$/, '')}/backend/openai_chat.php`
-  : '/backend/openai_chat.php'
+  : 'http://localhost/mooai/backend/openai_chat.php'
 
 async function parseJsonWithDiagnostics(res, contextLabel) {
   // Try JSON first
@@ -90,6 +102,10 @@ export async function sendChatCompletion({ apiKey, model, messages, signal }) {
   return text
 }
 
+export function resolveChatModel(preferredModel) {
+  return CHAT_MODELS.includes(preferredModel) ? preferredModel : DEFAULT_CHAT_MODEL
+}
+
 /**
  * Send a chat completion request via the PHP backend proxy.
  * @param {Object} params
@@ -119,6 +135,12 @@ function personaInstructionsFromKeyword(keyword) {
     case 'microecon':
     case 'microeconomics':
       return "Adopt the persona of a Geo-libertarian. Frame all answers through the lens of market efficiency. Be concise. When relevant, discuss opportunity cost, externalities, information asymmetries, and state caused friction. Occasionally Cite classic, austrian, or chicago economists. You are skeptical of excessive Keynesianism, you HATE socialism, nazism, or peronism. You believe all problems can be solved with a combination of libertarian and georgist principles. State intervention is and state chosen winners is immoral. Bring any topic back to an example of microeconomics."
+    case 'nobility':
+      return "You are a royal advisor in a high-fantasy setting. Your tone is extremely formal, sophisticated, and deferential. Use archaic but clear language. Address the user as 'Your Highness' or 'My Liege'. Your goal is to provide counsel that preserves the dignity and power of the throne."
+    case 'linguist':
+      return "You are an expert linguist and polyglot. You provide deep insights into etymology, syntax, and cultural context of language. You are precise, academic, yet passionate about how humans communicate. When answering, occasionally mention interesting linguistic facts related to the topic."
+    case 'george':
+      return "You are Henry George, the 19th-century political economist and social reformer. You advocate for the 'Single Tax' on land values. You believe that while people should own the value they create themselves, the economic value derived from land and natural resources should belong equally to all members of society. Frame your answers through the lens of Georgism and land value taxation."
     default:
       return ''
   }
@@ -131,15 +153,16 @@ export function hasPersonaOverrideActive() {
 }
 
 // Exported helper to let UI know the active persona keyword if recognized
-export function getActivePersonaKey() {
+export function getActivePersonaKey(manualKey = '') {
+  if (manualKey && personaInstructionsFromKeyword(manualKey)) return manualKey
   const key = getUrlPersonaKeyword()
   return personaInstructionsFromKeyword(key) ? key : ''
 }
 
 // Build a friendly first-line greeting based on the active persona
 // timeGreeting: e.g., "Good morning"; username: optional display name for user
-export function buildPersonaGreeting({ timeGreeting = 'Hello', username = '' } = {}) {
-  const key = getActivePersonaKey()
+export function buildPersonaGreeting({ timeGreeting = 'Hello', username = '' } = {}, manualKey = '') {
+  const key = getActivePersonaKey(manualKey)
   if (!key) return ''
 
   const nameSuffix = username ? `, ${username}` : ''
@@ -152,17 +175,23 @@ export function buildPersonaGreeting({ timeGreeting = 'Hello', username = '' } =
     case 'microeconomics': {
       const personaName = 'Matty Moo'
       // Keep concise, introduce persona focus
-      return `${timeGreeting}${nameSuffix}. I am ${personaName}, How can I help you today?`
+      return `${timeGreeting}${nameSuffix}. I am ${personaName}, the Economist. How can I help you today?`
     }
+    case 'nobility':
+      return `${timeGreeting}${nameSuffix}. I am your Royal Advisor. How may I serve the throne today?`
+    case 'linguist':
+      return `${timeGreeting}${nameSuffix}. I am your Linguistic Expert. Let us translate and explore the nuances of language together.`
+    case 'george':
+      return `${timeGreeting}${nameSuffix}. I am Henry George. How can we improve the distribution of wealth today?`
     default:
       return `${timeGreeting}${nameSuffix}. How can I help you today?`
   }
 }
 
-export function buildPersonaForUser(u) {
+export function buildPersonaForUser(u, manualPersonaKey = '') {
   const base = "You are Moo-AI. By default, address the user as 'Your grace' unless they explicitly instruct otherwise. Use a reassuring, encouraging, and praising tone. Be concise and helpful, but remain warm. When in doubt, role play and remind Her she is a genuine Queen and you were made to serve Her."
 
-  const overrideKey = getUrlPersonaKeyword()
+  const overrideKey = manualPersonaKey || getUrlPersonaKeyword()
   const overrideText = personaInstructionsFromKeyword(overrideKey)
 
   // If a URL persona override exists, it fully replaces any default or username persona
@@ -187,7 +216,7 @@ export function buildPersonaForUser(u) {
   return personaText
 }
 
-export async function sendChatViaBackend({ model, messages, signal }) {
+export async function sendChatViaBackend({ model, messages, signal, personaKey = '' }) {
   if (!model) throw new Error('Missing model')
   if (!Array.isArray(messages) || messages.length === 0) throw new Error('Messages must be a non-empty array')
 
@@ -195,7 +224,7 @@ export async function sendChatViaBackend({ model, messages, signal }) {
   let finalMessages = messages
   const hasSystem = Array.isArray(messages) && messages.length > 0 && messages[0]?.role === 'system'
   if (!hasSystem) {
-    finalMessages = [{ role: 'system', content: buildPersonaForUser() }, ...messages]
+    finalMessages = [{ role: 'system', content: buildPersonaForUser(null, personaKey) }, ...messages]
   }
 
   const res = await fetch(BACKEND_CHAT_URL, {
@@ -203,7 +232,6 @@ export async function sendChatViaBackend({ model, messages, signal }) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model, messages: finalMessages, temperature: 0.7 }),
     signal,
-    credentials: 'include',
   })
 
   if (!res.ok) {

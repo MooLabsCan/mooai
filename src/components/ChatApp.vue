@@ -1,13 +1,40 @@
 <script setup>
-import { ref, onMounted, nextTick, computed, inject } from 'vue'
+import { ref, onMounted, nextTick, computed, inject, watch } from 'vue'
 import ModelSelect from './ModelSelect.vue'
 import { authService } from '../services/authService'
-import { sendChatViaBackend, buildPersonaForUser, hasPersonaOverrideActive, buildPersonaGreeting } from '../services/chatAI'
+import {
+  sendChatViaBackend,
+  buildPersonaForUser,
+  hasPersonaOverrideActive,
+  buildPersonaGreeting,
+  getActivePersonaKey,
+  CHAT_MODELS,
+  resolveChatModel
+} from '../services/chatAI'
 import userWomanUrl from '../assets/user-woman.svg'
 import LanguageSupport from '../LangSup.json'
 
-const models = ['gpt-4o-mini', 'gpt-4.1', 'o4-mini', 'o3-mini', 'llama3.1:8b']
-const model = ref(localStorage.getItem('chat.model') || models[0])
+const models = CHAT_MODELS
+const model = ref(resolveChatModel(localStorage.getItem('chat.model')))
+
+const PERSONA_KEY = 'chat.persona'
+const personaOptions = [
+  { key: '', labelKey: '' }, // Default/Auto
+  { key: 'economist', labelKey: 'persona_economist' },
+  { key: 'nobility', labelKey: 'persona_nobility' },
+  { key: 'linguist', labelKey: 'persona_linguist' },
+  { key: 'george', labelKey: 'persona_george' }
+]
+const selectedPersona = ref(localStorage.getItem(PERSONA_KEY) || '')
+
+watch(selectedPersona, async (val, oldVal) => {
+  localStorage.setItem(PERSONA_KEY, val)
+  if (val === oldVal) return
+  if (!messages.value.length) return
+  appendMessage('assistant', buildInitialGreeting(val))
+  await nextTick()
+  scrollToBottom()
+})
 
 // Language injection
 const lang = inject('lang', ref('EN'))
@@ -95,6 +122,25 @@ function appendMessage(role, content){
 }
 
 // Build a persona system prompt based on the current logged-in user (imported from service)
+function buildInitialGreeting(manualPersonaKey = '') {
+  const greeting = getTimeOfDayGreeting()
+  const name = session.value && session.value.username ? session.value.username : null
+  const uname = name ? name.toString().trim().toLowerCase() : ''
+  let template
+  if (uname === 'hungryhippo') {
+    template = currentLangData.value.greeting_casual
+  } else if (uname === 'aline foch') {
+    template = currentLangData.value.greeting_formal
+  } else if (name) {
+    template = currentLangData.value.greeting_user.replace('{name}', name)
+  } else {
+    template = currentLangData.value.greeting_guest
+  }
+  const greetingLine = template.replace('{greeting}', greeting)
+  const activePersona = manualPersonaKey || getActivePersonaKey()
+  if (!activePersona) return greetingLine
+  return buildPersonaGreeting({ timeGreeting: greeting, username: name || '' }, activePersona) || greetingLine
+}
 
 async function send(){
   const text = input.value.trim()
@@ -119,11 +165,12 @@ async function send(){
     const hasSystem = baseMessages.length > 0 && baseMessages[0].role === 'system'
     const finalMessages = hasSystem
       ? baseMessages
-      : [{ role: 'system', content: buildPersonaForUser(session.value) }, ...baseMessages]
+      : [{ role: 'system', content: buildPersonaForUser(session.value, selectedPersona.value) }, ...baseMessages]
 
     const reply = await sendChatViaBackend({
       model: model.value,
-      messages: finalMessages
+      messages: finalMessages,
+      personaKey: selectedPersona.value
     })
     const idx = messages.value.findIndex(m => m.id === thinkingId)
     if (idx !== -1) {
@@ -182,35 +229,11 @@ async function typeOutMessage(id, fullText, baseDelay = 15){
 
 onMounted(async () => {
   // Try to pre-check session to personalize greeting if possible
-  let s = null
   try {
-    s = await checkSession()
+    await checkSession()
   } catch {}
 
-  // Compose dynamic greeting based on local time and language
-  const greeting = getTimeOfDayGreeting()
-  const name = s && s.username ? s.username : null
-  const uname = name ? name.toString().trim().toLowerCase() : ''
-  let template
-  if (uname === 'hungryhippo') {
-    template = currentLangData.value.greeting_casual
-  } else if (uname === 'aline foch') {
-    template = currentLangData.value.greeting_formal
-  } else if (name) {
-    template = currentLangData.value.greeting_user.replace('{name}', name)
-  } else {
-    template = currentLangData.value.greeting_guest
-  }
-  const greetingLine = template.replace('{greeting}', greeting)
-
-
-  // If a URL persona override is active, inject a persona-based greeting instead of the default
-  if (hasPersonaOverrideActive()) {
-    const personaGreeting = buildPersonaGreeting({ timeGreeting: greeting, username: name || '' })
-    appendMessage('assistant', personaGreeting || greetingLine)
-  } else {
-    appendMessage('assistant', greetingLine)
-  }
+  appendMessage('assistant', buildInitialGreeting(selectedPersona.value))
 
   scrollToBottom()
 })
@@ -221,6 +244,12 @@ onMounted(async () => {
     <header class="topbar">
       <div class="controls">
         <ModelSelect :model="model" :models="models" @update:model="val => { model.value = val; persistModel(val) }" />
+        <select v-model="selectedPersona" class="persona-select">
+          <option value="">{{ currentLangData.persona_default || 'Default Persona' }}</option>
+          <option v-for="opt in personaOptions.slice(1)" :key="opt.key" :value="opt.key">
+            {{ currentLangData[opt.labelKey] || opt.key }}
+          </option>
+        </select>
         <div class="session">
           <span v-if="session" class="user-chip" title="Logged in" @click="onLoginClick">
             <span class="dot"></span>
@@ -316,6 +345,16 @@ onMounted(async () => {
 .subtitle { margin: .125rem 0 0; font-size: .8rem; color: var(--muted-foreground); }
 
 .controls { display: flex; align-items: center; gap: .75rem; flex: 1; }
+.persona-select {
+  padding: .4rem .6rem;
+  border-radius: .6rem;
+  border: 1px solid var(--border);
+  background: var(--muted);
+  color: var(--foreground);
+  font-size: .85rem;
+  outline: none;
+}
+.persona-select:focus { border-color: var(--accent); }
 .session { display: flex; align-items: center; margin-left: auto; }
 .login-btn {
   padding: .5rem .8rem;
@@ -340,7 +379,7 @@ onMounted(async () => {
 .msg .avatar { width: 36px; height: 36px; display: grid; place-items: center; background: var(--muted); border-radius: 50%; font-size: 18px; overflow: hidden; }
 .msg .avatar .avatar-img { width: 24px; height: 24px; object-fit: cover; display: block; }
 .msg .avatar .glow-dot { width: 12px; height: 12px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 6px 2px rgba(34,197,94,0.7), 0 0 14px 6px rgba(34,197,94,0.25); display: inline-block; }
-.msg .bubble { padding: .75rem .9rem; border-radius: .75rem; border: 1px solid var(--border); background: #12131a; }
+.msg .bubble { padding: .75rem .9rem; border-radius: .75rem; border: 1px solid var(--border); background: #12131a; text-align: left; }
 .msg[data-role="user"] .bubble { background: #0f1320; }
 .msg[data-role="assistant"] .bubble { background: #101618; }
 

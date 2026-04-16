@@ -10,9 +10,8 @@ export default defineConfig({
         target: 'http://localhost',
         changeOrigin: true,
         secure: false,
-        // Forward to Apache's document root where this project lives
-        // so that PHP files are executed by PHP instead of served as static text.
-        rewrite: (path) => path.replace(/^\/backend/, '/mooai/backend'),
+        // Keep path as-is: /backend/* -> http://localhost/backend/*
+        // This matches setups where Apache serves this project at localhost root.
       },
       // Proxy for authService and other PHP endpoints under /api
       '/api': {

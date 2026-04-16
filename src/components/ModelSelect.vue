@@ -1,10 +1,11 @@
 <script setup>
 import { computed } from 'vue'
 import openaiLogoUrl from '../assets/openai.svg'
+import { CHAT_MODELS, DEFAULT_CHAT_MODEL } from '../services/chatAI'
 
 const props = defineProps({
-  model: { type: String, default: 'gpt-4o-mini' },
-  models: { type: Array, default: () => (['gpt-4o-mini', 'gpt-4.1', 'o4-mini', 'o3-mini', 'llama3.1:8b']) },
+  model: { type: String, default: DEFAULT_CHAT_MODEL },
+  models: { type: Array, default: () => CHAT_MODELS },
   disabled: { type: Boolean, default: false }
 })
 
@@ -25,7 +26,14 @@ const isOpenAI = computed(() => /^(gpt-|o\d|o)/i.test(value.value))
     <div class="select-wrap">
       <img v-if="isOpenAI" :src="openaiLogoUrl" alt="OpenAI" class="vendor-icon" />
       <select v-model="value" :disabled="disabled" aria-label="Select model">
-        <option v-for="m in props.models" :key="m" :value="m">{{ m }}</option>
+        <optgroup label="OpenAI">
+          <option v-for="m in props.models" :key="m" :value="m">{{ m }}</option>
+        </optgroup>
+        <optgroup label="Claude — Coming Soon" class="coming-soon">
+          <option disabled value="">claude-opus-4</option>
+          <option disabled value="">claude-sonnet-4</option>
+          <option disabled value="">claude-haiku-4</option>
+        </optgroup>
       </select>
     </div>
   </label>

@@ -4,15 +4,13 @@ require_once __DIR__ . DIRECTORY_SEPARATOR . 'config.php';
 header('Content-Type: application/json');
 
 $data = read_json_body();
-$model = isset($data['model']) ? $data['model'] : '';
+$model = isset($data['model']) ? trim((string)$data['model']) : '';
+if ($model === '') {
+    $model = 'gpt-4o-mini';
+}
 $messages = isset($data['messages']) ? $data['messages'] : null;
 $temperature = isset($data['temperature']) ? $data['temperature'] : 0.7;
 
-if (!$model) {
-    http_response_code(400);
-    echo json_encode([ 'error' => 'Missing "model"' ]);
-    exit;
-}
 if (!is_array($messages) || count($messages) === 0) {
     http_response_code(400);
     echo json_encode([ 'error' => '"messages" must be a non-empty array' ]);
