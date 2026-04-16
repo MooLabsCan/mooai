@@ -34,9 +34,10 @@ const languageOptions = [
 
 function applyThemeClass(t){
   const root = document.documentElement
-  root.classList.remove('theme-dark', 'theme-light', 'theme-feminine')
+  root.classList.remove('theme-dark', 'theme-light', 'theme-feminine', 'theme-aurora')
   if (t === 'light') root.classList.add('theme-light')
   else if (t === 'feminine') root.classList.add('theme-feminine')
+  else if (t === 'aurora') root.classList.add('theme-aurora')
   else root.classList.add('theme-dark')
 }
 
@@ -100,6 +101,11 @@ onMounted(() => {
             <span class="swatch feminine"></span>
             <span>{{ currentLangData.theme_feminine }}</span>
           </label>
+          <label class="theme-option">
+            <input type="radio" name="theme" value="aurora" v-model="theme" />
+            <span class="swatch aurora"></span>
+            <span>{{ currentLangData.theme_aurora }}</span>
+          </label>
         </div>
       </div>
     </section>
@@ -131,6 +137,8 @@ onMounted(() => {
 .swatch.light { background: linear-gradient(135deg, #ffffff, #f0f2f5); }
 /* Soft floral gradient with subtle pattern for feminine */
 .swatch.feminine { background: linear-gradient(135deg, #fff1f7, #ffe8f1 40%, #f7e8ff); }
+/* Aurora: deep indigo cosmic gradient */
+.swatch.aurora { background: linear-gradient(135deg, #07080f 0%, #1a1060 55%, #0b0d1f 100%); }
 
 /* THEME TOKENS */
 :root.theme-dark {
@@ -205,7 +213,34 @@ onMounted(() => {
 :root.theme-feminine .send { background: var(--accent); color: #3a0a1f; }
 
 /* Make body follow theme background gently */
-html.theme-dark, html.theme-light, html.theme-feminine { background: var(--background); }
+html.theme-dark, html.theme-light, html.theme-feminine, html.theme-aurora { background: var(--background); }
+
+:root.theme-aurora {
+  --background: #07080f;
+  --panel: #0c0e1a;
+  --muted: #14172a;
+  --border: #1e2240;
+  --foreground: #dde1f5;
+  --muted-foreground: #8891b8;
+  --accent: #818cf8;
+  --accent-strong: #6366f1;
+  --bubble-user: #0f1235;
+  --bubble-assistant: #0b0e20;
+  --bubble: #0e1020;
+  --chip-bg: #111428;
+  --btn-bg: #171c35;
+}
+
+:root.theme-aurora .chat-shell { background: var(--background); color: var(--foreground); }
+:root.theme-aurora .msg .bubble { background: var(--bubble); border-color: var(--border); }
+:root.theme-aurora .msg[data-role="user"] .bubble { background: var(--bubble-user); }
+:root.theme-aurora .msg[data-role="assistant"] .bubble { background: var(--bubble-assistant); }
+:root.theme-aurora .login-btn { background: var(--btn-bg); color: var(--foreground); border-color: var(--border); }
+:root.theme-aurora .user-chip { background: var(--chip-bg); border-color: var(--border); color: var(--foreground); }
+:root.theme-aurora textarea { background: var(--muted); color: var(--foreground); border-color: var(--border); }
+:root.theme-aurora .send { background: var(--accent); color: #07080f; }
+:root.theme-aurora .glow-dot { background: var(--accent) !important; box-shadow: 0 0 6px 2px rgba(129,140,248,.7), 0 0 18px 8px rgba(99,102,241,.25) !important; }
+:root.theme-aurora .topbar, :root.theme-aurora .composer { border-color: var(--border); }
 </style>
 
 
@@ -279,9 +314,16 @@ html.theme-dark, html.theme-light, html.theme-feminine { background: var(--backg
 .app-shell.theme-light .send { background: var(--accent); color: #0a0a0a; }
 .app-shell.theme-feminine .send { background: var(--accent); color: #3a0a1f; }
 /* Soft floral backdrop for feminine theme on the page */
-.app-shell.theme-feminine { 
+.app-shell.theme-feminine {
   background-image: radial-gradient(20px 20px at 20px 20px, rgba(255,182,193,0.2) 20%, transparent 21%),
                     radial-gradient(24px 24px at 120px 60px, rgba(255,192,203,0.18) 20%, transparent 21%),
                     radial-gradient(18px 18px at 60% 30%, rgba(255,182,193,0.18) 18%, transparent 19%);
+}
+/* Aurora: radial indigo glow at top, violet hint at bottom-right */
+.app-shell.theme-aurora {
+  background-color: #07080f;
+  background-image:
+    radial-gradient(ellipse 80% 45% at 50% -5%, rgba(99,102,241,0.22) 0%, transparent 70%),
+    radial-gradient(ellipse 45% 35% at 95% 95%, rgba(139,92,246,0.12) 0%, transparent 60%);
 }
 </style>

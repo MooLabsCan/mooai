@@ -341,6 +341,9 @@ onMounted(async () => {
   display: grid;
   grid-template-rows: auto 1fr auto;
   height: 100%;
+  width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
   background: var(--background);
   color: var(--foreground);
 }
@@ -364,7 +367,7 @@ onMounted(async () => {
 .titles h1 { font-size: 1rem; line-height: 1; margin: 0; }
 .subtitle { margin: .125rem 0 0; font-size: .8rem; color: var(--muted-foreground); }
 
-.controls { display: flex; align-items: center; gap: .75rem; flex: 1; }
+.controls { display: flex; align-items: center; gap: .5rem; flex: 1; min-width: 0; overflow: hidden; }
 .persona-select {
   padding: .4rem .6rem;
   border-radius: .6rem;
@@ -373,6 +376,10 @@ onMounted(async () => {
   color: var(--foreground);
   font-size: .85rem;
   outline: none;
+  min-width: 0;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .persona-select:focus { border-color: var(--accent); }
 .session { display: flex; align-items: center; gap: .5rem; margin-left: auto; }
@@ -408,7 +415,7 @@ onMounted(async () => {
 .msg .avatar { width: 36px; height: 36px; display: grid; place-items: center; background: var(--muted); border-radius: 50%; font-size: 18px; overflow: hidden; }
 .msg .avatar .avatar-img { width: 24px; height: 24px; object-fit: cover; display: block; }
 .msg .avatar .glow-dot { width: 12px; height: 12px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 6px 2px rgba(34,197,94,0.7), 0 0 14px 6px rgba(34,197,94,0.25); display: inline-block; }
-.msg .bubble { padding: .75rem .9rem; border-radius: .75rem; border: 1px solid var(--border); background: #12131a; text-align: left; }
+.msg .bubble { padding: .75rem .9rem; border-radius: .75rem; border: 1px solid var(--border); background: #12131a; text-align: left; min-width: 0; overflow-wrap: break-word; word-break: break-word; }
 .msg[data-role="user"] .bubble { background: #0f1320; }
 .msg[data-role="assistant"] .bubble { background: #101618; }
 
@@ -450,8 +457,16 @@ textarea:disabled { opacity: .7; }
 
 .tips { margin-top: .5rem; font-size: .8rem; color: var(--muted-foreground); text-align: center; }
 
-/* Desktop tweaks */
-@media (min-width: 900px) {
+/* Portrait: controls wrap into two rows so nothing overflows */
+@media (orientation: portrait) {
+  .controls { flex-wrap: wrap; row-gap: .35rem; }
+  .session { width: 100%; margin-left: 0; justify-content: flex-end; }
+  :deep(.model-select) { flex: 1; min-width: 0; }
+  .persona-select { flex: 1; max-width: none; }
+}
+
+/* Desktop card: only when wide AND landscape (real desktop/laptop) */
+@media (min-width: 900px) and (orientation: landscape) {
   .chat-shell { max-width: 960px; margin: 0 auto; border: 1px solid var(--border); border-radius: 1rem; }
   .topbar { border-top-left-radius: 1rem; border-top-right-radius: 1rem; }
   .composer { border-bottom-left-radius: 1rem; border-bottom-right-radius: 1rem; }

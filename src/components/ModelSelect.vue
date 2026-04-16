@@ -44,13 +44,16 @@ const isOpenAI = computed(() => /^(gpt-|o\d|o)/i.test(value.value))
   display: inline-flex;
   align-items: center;
   gap: .5rem;
+  min-width: 0;
+  flex-shrink: 1;
 }
 .label {
   font-size: .85rem;
   color: var(--muted-foreground);
+  white-space: nowrap;
 }
-.select-wrap { display: inline-flex; align-items: center; gap: .4rem; }
-.vendor-icon { width: 18px; height: 18px; display: inline-block; }
+.select-wrap { display: flex; align-items: center; gap: .4rem; min-width: 0; flex: 1; }
+.vendor-icon { width: 18px; height: 18px; flex-shrink: 0; display: inline-block; }
 select {
   appearance: none;
   -webkit-appearance: none;
@@ -60,6 +63,11 @@ select {
   border: 1px solid var(--border);
   background: var(--muted);
   color: var(--foreground);
+  min-width: 0;
+  max-width: 140px;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 select:disabled {
   opacity: .6;
