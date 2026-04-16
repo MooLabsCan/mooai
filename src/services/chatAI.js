@@ -27,7 +27,7 @@ const BACKEND_CHAT_URL = BACKEND_CHAT_URL_OVERRIDE
   ? BACKEND_CHAT_URL_OVERRIDE
   : BACKEND_BASE
   ? `${BACKEND_BASE.replace(/\/$/, '')}/backend/openai_chat.php`
-  : 'http://localhost/mooai/backend/openai_chat.php'
+  : '/backend/openai_chat.php'
 
 async function parseJsonWithDiagnostics(res, contextLabel) {
   // Try JSON first
